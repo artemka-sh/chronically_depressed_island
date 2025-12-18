@@ -15,7 +15,8 @@ int SCR_X = 1280, SCR_Y = 720;
 
 int main()
 {
+    
     Application app(SCR_X, SCR_Y, "iceland");
     
-    return 0;
+    return app();
 }
