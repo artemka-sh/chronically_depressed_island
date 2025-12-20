@@ -2,8 +2,10 @@
 
 Application::Application(uint x_res, uint y_res, std::string window_name, uint framerate):
 window_(sf::VideoMode({x_res, y_res}), window_name),
+cameraman_(),
 loader_(),
-renderer_(window_, loader_)
+renderer_(window_, loader_, cameraman_),
+input_(window_)
 {
     
     window_.setFramerateLimit(framerate);
@@ -22,9 +24,10 @@ void Application::run()
 {
     while (window_.isOpen())
     {
-        dt = dtClock.restart().asSeconds();
+        dt_ = dtClock_.restart().asSeconds();
         
         renderer_.render();
+        input_.process(cameraman_);
 
     }
 }

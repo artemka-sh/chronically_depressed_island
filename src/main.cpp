@@ -9,7 +9,7 @@
 #include <cmath>
 
 
-#include "application.hpp"
+#include "../include/application.hpp"
 
 int SCR_X = 1280, SCR_Y = 720;
 

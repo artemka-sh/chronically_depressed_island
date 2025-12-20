@@ -1,13 +1,15 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "object_loader.hpp"
+#include "cameraman.hpp"
 #include <print>
 #include <cmath>
+#include <map>
 
 class RenderEngine{
 public:
     RenderEngine() = default;
-    RenderEngine(sf::RenderWindow& window, Object_loader& loader);
+    RenderEngine(sf::RenderWindow& window, Object_loader& loader, Cameraman& cameraman);
     //void render(const Scene& scene);
     void render();
 
@@ -20,12 +22,7 @@ public:
     private: 
     sf::RenderWindow& window_;
     Object_loader& loader_;
-    float focalLength;
-    float moveSpeed = 10;
-
-    sf::Vector3f camera_position{0.0f, 0.0f, 0.0f};
-    float camera_yaw = 0.0f;   
-    float camera_pitch = 0.0f;
+    Cameraman& cameraman_;
 
     // Для FPS
     sf::Clock fpsClock;
@@ -35,7 +32,7 @@ public:
 
     int SCR_X;
     int SCR_Y;
-    
+
 };
 
 

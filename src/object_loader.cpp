@@ -20,7 +20,7 @@ std::shared_ptr<Mesh> Object_loader::load_mesh(std::string model_path)
     if (!mapfile) {
         std::println("Ошибка открытия файла!");
 
-        throw std::runtime_error("ошибка открытия файла(");
+        throw std::runtime_error("ошибка открытия файла( object_loader ожидал что файл будет а его нет");
         return nullptr;
     }
 
