@@ -17,77 +17,94 @@ window_(window), loader_(loader), cameraman_(cameraman)
 
 void RenderEngine::render()
 {
-    sf::Vector3f& camera_position  = cameraman_.position_;
-    const float& camera_yaw = cameraman_.yaw_;
-    const float& camera_pitch = cameraman_.pitch_;
-    const float& FOV = cameraman_.FOV_;
-    const float rFOV = FOV * PI / 180;
-    const float focalLength = SCR_X / (2.0f * tan(rFOV / 2.0f));    //оверхед повсюду(
 
 
-
-    auto& meshes = loader_.getMeshVec();
-    std::shared_ptr<Mesh> currentMesh = meshes[0];
-    const std::vector<sf::Vector3f>& dots = currentMesh->dots_;
+    const float rFOV = cameraman_.FOV_ * PI / 180; //радиан
+    const float focalLength = SCR_X / (2.0f * tan(rFOV / 2.0f));
 
     window_.clear();
 
-    fpsFrameCount++;
-    fpsUpdateTime += fpsClock.restart().asSeconds();
-    if (fpsUpdateTime >= 1.0f) {
-        fps = fpsFrameCount / fpsUpdateTime;
-        fpsFrameCount = 0;
-        fpsUpdateTime = 0.0f;
-    }
-
-
-    std::map<int, sf::Vector2f> pointsOnScreen;
-    int vertexIndex = 0;
-     for (const auto& dot : dots)
-     {
-         vertexIndex++;
-
-        sf::Vector3f fromEyeToDot = dot - camera_position;
-
-        float cosYaw = cos(camera_yaw);
-        float sinYaw = sin(camera_yaw);
-        float rotatedX = fromEyeToDot.x * cosYaw - fromEyeToDot.z * sinYaw;
-        float rotatedZ = fromEyeToDot.x * sinYaw + fromEyeToDot.z * cosYaw;
-
-        float cosPitch = cos(camera_pitch);
-        float sinPitch = sin(camera_pitch);
-        float rotatedY = fromEyeToDot.y * cosPitch - rotatedZ * sinPitch;
-        rotatedZ = fromEyeToDot.y * sinPitch + rotatedZ * cosPitch;
-
-        // Теперь rotatedX, rotatedY, rotatedZ - это координаты в системе камеры
-
-        if(rotatedZ <= 0)
-            continue;
-
-        float pointX = (rotatedX * focalLength) / rotatedZ;
-        float pointY = (rotatedY * focalLength) / rotatedZ;
-
-         pointsOnScreen[vertexIndex] = sf::Vector2f(SCR_X / 2 + pointX, SCR_Y / 2 - pointY);
-    }
-
-
-    for (const auto& triangle : currentMesh->faces_)
+    auto& meshes = loader_.getMeshVec();
+    for (auto &currentMesh: meshes)
     {
-        if (pointsOnScreen.count(triangle[0]) == 0 ||
-            pointsOnScreen.count(triangle[1]) == 0 ||
-            pointsOnScreen.count(triangle[2]) == 0)
+        const std::vector<sf::Vector3f>& dots = currentMesh->dots_;
+        std::map<int, sf::Vector2f> pointsOnScreen;
+        int vertexIndex = 0;
+        for (const auto& dot : dots)
         {
-            continue;
+            vertexIndex++;
+
+            sf::Vector3f fromEyeToDot = dot - cameraman_.position_;
+
+            float cosYaw = cos(cameraman_.yaw_);
+            float sinYaw = sin(cameraman_.yaw_);
+            float rotatedX = fromEyeToDot.x * cosYaw - fromEyeToDot.z * sinYaw;
+            float rotatedZ = fromEyeToDot.x * sinYaw + fromEyeToDot.z * cosYaw;
+
+            float cosPitch = cos(cameraman_.pitch_);
+            float sinPitch = sin(cameraman_.pitch_);
+            float rotatedY = fromEyeToDot.y * cosPitch - rotatedZ * sinPitch;
+            rotatedZ = fromEyeToDot.y * sinPitch + rotatedZ * cosPitch;
+
+            // Теперь rotatedX, rotatedY, rotatedZ - это координаты в системе камеры
+
+            if(rotatedZ <= 0)
+                continue;
+
+            float pointX = (rotatedX * focalLength) / rotatedZ;
+            float pointY = (rotatedY * focalLength) / rotatedZ;
+
+            pointsOnScreen[vertexIndex] = sf::Vector2f(SCR_X / 2 + pointX, SCR_Y / 2 - pointY);
         }
 
-        sf::Vertex vertices[3];
-        vertices[0] = sf::Vertex(pointsOnScreen[triangle[0]], sf::Color::Yellow);
-        vertices[1] = sf::Vertex(pointsOnScreen[triangle[1]], sf::Color::Magenta);
-        vertices[2] = sf::Vertex(pointsOnScreen[triangle[2]], sf::Color::Green);
+        //здесь происходит реализцаия сортировки граней по удалённости
+        auto isVisible = [&](const std::vector<int>& face) {
+            return pointsOnScreen.contains(face[0]) &&
+                   pointsOnScreen.contains(face[1]) &&
+                   pointsOnScreen.contains(face[2]);
+        };
 
-        window_.draw(vertices, 3, sf::PrimitiveType::Triangles);
+        auto visibleFaces = currentMesh->faces_
+                          | std::views::filter(isVisible)
+                          | std::ranges::to<std::vector>();
+
+        std::ranges::sort(visibleFaces,
+            std::greater<>{},
+        [&](const std::vector<int>& face)
+        {
+            sf::Vector3f middleDotOfFace(0, 0, 0);
+            for (int index : face)
+            {
+                middleDotOfFace += dots[index - 1];
+            }
+            middleDotOfFace /= static_cast<float>(face.size());
+            sf::Vector3f diff = middleDotOfFace - cameraman_.position_;
+            return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+        }
+        );
+        /////////////////////////////////////////
+
+        std::vector<sf::VertexArray> poligonVector;
+        for (const auto& triangle : visibleFaces)
+        {
+
+            sf::VertexArray poligon(sf::PrimitiveType::Triangles, 3); //
+            poligon[0] = sf::Vertex(pointsOnScreen[triangle[0]], sf::Color::Yellow);
+            poligon[1] = sf::Vertex(pointsOnScreen[triangle[1]], sf::Color::Magenta);
+            poligon[2] = sf::Vertex(pointsOnScreen[triangle[2]], sf::Color::Green);
+
+            poligonVector.push_back(poligon);
+        }
+
+        //std::random_shuffle(poligonVector.begin(), poligonVector.end());
+
+        for (const auto& poligon: poligonVector)
+        {
+            window_.draw(poligon);
+        }
+
+
     }
-
 
     window_.display();
 

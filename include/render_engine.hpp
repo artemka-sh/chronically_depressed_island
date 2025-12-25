@@ -5,6 +5,9 @@
 #include <print>
 #include <cmath>
 #include <map>
+#include <ranges>
+#include <vector>
+#include <algorithm>
 
 class RenderEngine{
 public:
@@ -13,26 +16,18 @@ public:
     //void render(const Scene& scene);
     void render();
 
-    // void renderMesh(const Mesh& mesh, const Transform& transform, 
+    // void renderMesh(const Mesh& mesh, const Transform& transform,
     //                 const Camera& camera, const Material& material);
     // void applyLighting(const Scene& scene);
     // void postProcess();
 
-    
-    private: 
+
+    private:
     sf::RenderWindow& window_;
     Object_loader& loader_;
     Cameraman& cameraman_;
-
-    // Для FPS
-    sf::Clock fpsClock;
-    int fpsFrameCount = 0;
-    float fps = 0.0f;
-    float fpsUpdateTime = 0.0f;
 
     int SCR_X;
     int SCR_Y;
 
 };
-
-

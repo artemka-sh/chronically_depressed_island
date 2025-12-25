@@ -1,6 +1,8 @@
 #include "cameraman.hpp"
 
-void Cameraman::printdebuginfo()
+Cameraman::Cameraman(float& dt): dt_(dt){}
+
+void Cameraman::printDebugInfo() const
 {
     const sf::Vector3f& c = position_;
     std::print("Camera position: {}, {}, {}\n", c.x, c.y, c.z);
