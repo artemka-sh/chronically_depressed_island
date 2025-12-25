@@ -9,7 +9,8 @@
 #include <vector>
 #include <algorithm>
 
-class RenderEngine{
+class RenderEngine
+{
 public:
     RenderEngine() = default;
     RenderEngine(sf::RenderWindow& window, Object_loader& loader, Cameraman& cameraman);
@@ -22,7 +23,7 @@ public:
     // void postProcess();
 
 
-    private:
+private:
     sf::RenderWindow& window_;
     Object_loader& loader_;
     Cameraman& cameraman_;
@@ -30,4 +31,7 @@ public:
     int SCR_X;
     int SCR_Y;
 
+    // Временные объекты
+    std::vector<std::vector<int>> visibleFaces_;
+    sf::Vector3f sunLightDirection{0.4f, 0.8f, -0.9f};
 };

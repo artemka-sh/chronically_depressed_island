@@ -28,18 +28,18 @@ void Application::run()
         input_.process(cameraman_);
 
 
-        static sf::Clock fpsClock;
-        static int fpsFrameCount = 0;
-        static float fps = 0.0f;
-        static float fpsUpdateTime = 0.0f;
-        fpsFrameCount++;
-        fpsUpdateTime += fpsClock.restart().asSeconds();
-        if (fpsUpdateTime >= 1.0f) {
-            fps = fpsFrameCount / fpsUpdateTime;
-            fpsFrameCount = 0;
-            fpsUpdateTime = 0.0f;
-        }
+        // static sf::Clock fpsClock;
+        // static int fpsFrameCount = 0;
+        // static float fps = 0.0f;
+        // static float fpsUpdateTime = 0.0f;
+        // fpsFrameCount++;
+        // fpsUpdateTime += fpsClock.restart().asSeconds();
+        // if (fpsUpdateTime >= 1.0f) {
+        //     fps = fpsFrameCount / fpsUpdateTime;
+        //     fpsFrameCount = 0;
+        //     fpsUpdateTime = 0.0f;
+        // }
 
-        std::print("fps: {}", fps);
+        //std::print("fps: {}", fps);
     }
 }

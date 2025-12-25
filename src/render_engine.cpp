@@ -1,9 +1,10 @@
  #include "render_engine.hpp"
 
+sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b);
+
 int MAP_SC = 1000;
 constexpr float PI = 3.14159;
 const std::string mapFilePath = "res/clif_and_cave.obj";
-
 
 
 RenderEngine::RenderEngine(sf::RenderWindow& window, Object_loader& loader, Cameraman& cameraman):
@@ -28,21 +29,26 @@ void RenderEngine::render()
     for (auto &currentMesh: meshes)
     {
         const std::vector<sf::Vector3f>& dots = currentMesh->dots_;
-        std::map<int, sf::Vector2f> pointsOnScreen;
+        std::unordered_map<int, sf::Vector2f> pointsOnScreen;
         int vertexIndex = 0;
+
+
+        float cosYaw = cos(cameraman_.yaw_);
+        float sinYaw = sin(cameraman_.yaw_);
+
+        float cosPitch = cos(cameraman_.pitch_);
+        float sinPitch = sin(cameraman_.pitch_);
+
+
         for (const auto& dot : dots)
         {
             vertexIndex++;
 
             sf::Vector3f fromEyeToDot = dot - cameraman_.position_;
 
-            float cosYaw = cos(cameraman_.yaw_);
-            float sinYaw = sin(cameraman_.yaw_);
             float rotatedX = fromEyeToDot.x * cosYaw - fromEyeToDot.z * sinYaw;
             float rotatedZ = fromEyeToDot.x * sinYaw + fromEyeToDot.z * cosYaw;
 
-            float cosPitch = cos(cameraman_.pitch_);
-            float sinPitch = sin(cameraman_.pitch_);
             float rotatedY = fromEyeToDot.y * cosPitch - rotatedZ * sinPitch;
             rotatedZ = fromEyeToDot.y * sinPitch + rotatedZ * cosPitch;
 
@@ -64,11 +70,11 @@ void RenderEngine::render()
                    pointsOnScreen.contains(face[2]);
         };
 
-        auto visibleFaces = currentMesh->faces_
+        visibleFaces_ = currentMesh->faces_
                           | std::views::filter(isVisible)
                           | std::ranges::to<std::vector>();
 
-        std::ranges::sort(visibleFaces,
+        std::ranges::sort(visibleFaces_,
             std::greater<>{},
         [&](const std::vector<int>& face)
         {
@@ -85,13 +91,26 @@ void RenderEngine::render()
         /////////////////////////////////////////
 
         std::vector<sf::VertexArray> poligonVector;
-        for (const auto& triangle : visibleFaces)
+        for (const auto& triangle : visibleFaces_)
         {
+            const sf::Vector3f& A = dots[triangle[0] - 1];
+            const sf::Vector3f& B = dots[triangle[1] - 1];
+            const sf::Vector3f& C = dots[triangle[2] - 1];
+            const auto AB = A - B;
+            const auto AC = A - C;
+
+            sf::Vector3f normalVector = crossProduct(AB, AC).normalized();
+
+            float scalarProduct = normalVector.dot(sunLightDirection);
+
+            int br = scalarProduct * 255;
+            br = std::clamp(br, 50, 240);
+            sf::Color pColor(br, br, br);
 
             sf::VertexArray poligon(sf::PrimitiveType::Triangles, 3); //
-            poligon[0] = sf::Vertex(pointsOnScreen[triangle[0]], sf::Color::Yellow);
-            poligon[1] = sf::Vertex(pointsOnScreen[triangle[1]], sf::Color::Magenta);
-            poligon[2] = sf::Vertex(pointsOnScreen[triangle[2]], sf::Color::Green);
+            poligon[0] = sf::Vertex(pointsOnScreen[triangle[0]], pColor);
+            poligon[1] = sf::Vertex(pointsOnScreen[triangle[1]], pColor);
+            poligon[2] = sf::Vertex(pointsOnScreen[triangle[2]], pColor);
 
             poligonVector.push_back(poligon);
         }
@@ -108,4 +127,12 @@ void RenderEngine::render()
 
     window_.display();
 
+}
+
+sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
+    return sf::Vector3f(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    );
 }
