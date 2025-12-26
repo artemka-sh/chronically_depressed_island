@@ -29,7 +29,8 @@ void RenderEngine::render()
     for (auto &currentMesh: meshes)
     {
         const std::vector<sf::Vector3f>& dots = currentMesh->dots_;
-        std::unordered_map<int, sf::Vector2f> pointsOnScreen;
+        // std::unordered_map<int, sf::Vector2f> pointsOnScreen;
+        std::vector<sf::Vector2f> pointsOnScreen(dots.size() + 1, {NAN, NAN});
         int vertexIndex = 0;
 
 
@@ -65,11 +66,10 @@ void RenderEngine::render()
 
         //здесь происходит реализцаия сортировки граней по удалённости
         auto isVisible = [&](const std::vector<int>& face) {
-            return pointsOnScreen.contains(face[0]) &&
-                   pointsOnScreen.contains(face[1]) &&
-                   pointsOnScreen.contains(face[2]);
+            return !std::isnan(pointsOnScreen[face[0]].x) &&
+                   !std::isnan(pointsOnScreen[face[1]].x) &&
+                   !std::isnan(pointsOnScreen[face[2]].x);
         };
-
         visibleFaces_ = currentMesh->faces_
                           | std::views::filter(isVisible)
                           | std::ranges::to<std::vector>();
@@ -103,8 +103,8 @@ void RenderEngine::render()
 
             float scalarProduct = normalVector.dot(sunLightDirection);
 
-            int br = scalarProduct * 255;
-            br = std::clamp(br, 50, 240);
+            int br = scalarProduct * 128;
+            br = std::clamp(br, 0, 255);
             sf::Color pColor(br, br, br);
 
             sf::VertexArray poligon(sf::PrimitiveType::Triangles, 3); //
