@@ -2,8 +2,8 @@
 
 Application::Application(uint x_res, uint y_res, std::string window_name, uint framerate):
 window_(sf::VideoMode({x_res, y_res}), window_name),
-cameraman_(dt_),
-loader_(),
+cameraman_(),
+loader_(resourceManager_),
 renderer_(window_, loader_, cameraman_),
 input_(window_)
 {
@@ -25,7 +25,7 @@ void Application::run()
         dt_ = dtClock_.restart().asSeconds();
         
         renderer_.render();
-        input_.process(cameraman_);
+        input_.process(cameraman_); //нужно передавать и обрабатывать dt правильно.
 
 
         // static sf::Clock fpsClock;

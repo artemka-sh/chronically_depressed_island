@@ -1,7 +1,5 @@
 #include "cameraman.hpp"
 
-Cameraman::Cameraman(float& dt): dt_(dt){}
-
 void Cameraman::printDebugInfo() const
 {
     const sf::Vector3f& c = position_;

@@ -18,7 +18,7 @@ class Cameraman
     };
     friend class RenderEngine;
     friend class Input;
-    float &dt_;
+
     sf::Vector3f position_{0.0f, 0.0f, 0.0f};
     //sf::Vector3f moveVector;
     float FOV_ = 90.0f;
@@ -29,7 +29,7 @@ class Cameraman
 
 
 public:
-    explicit Cameraman(float& dt);
+    explicit Cameraman() = default;
     void printDebugInfo() const;
     void move(Direction direction);
     void cameraRotate(Direction direction);

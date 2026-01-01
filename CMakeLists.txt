@@ -29,8 +29,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 )
 
 
-find_package(SFML 3 REQUIRED COMPONENTS Graphics)
-target_link_libraries(${PROJECT_NAME} SFML::Graphics)
+find_package(SFML 3 REQUIRED COMPONENTS Graphics Audio)
+target_link_libraries(${PROJECT_NAME} SFML::Graphics SFML::Audio)
 
 add_custom_target(copy_resources ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory

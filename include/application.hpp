@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "resource_manager.hpp"
 #include "render_engine.hpp"
 #include "cameraman.hpp"
 #include "input.hpp"
@@ -7,6 +8,7 @@
 class Application {
     sf::RenderWindow window_;
     Cameraman cameraman_;
+    ResourceManager resourceManager_;
     Object_loader loader_;
     RenderEngine renderer_;
     Input input_;
