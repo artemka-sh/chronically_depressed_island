@@ -53,3 +53,14 @@ void Cameraman::cameraRotate(Direction dir)
         break;
     }
 }
+
+void Cameraman::justdo(Action action)
+{
+    switch (action)
+    {
+    case Action::PrintDebug:
+        std::print("Debug info: \n");
+        std::print("Camera position is: {}, {}, {}\n", position_.x, position_.y, position_.z);
+        break;
+    }
+}

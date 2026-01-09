@@ -8,6 +8,9 @@ class RenderEngine;
 class Input;
 class Cameraman
 {
+    friend class RenderEngine;
+    friend class Input;
+
     enum class Direction {
         Forward,
         Backward,
@@ -16,8 +19,13 @@ class Cameraman
         Up,
         Down
     };
-    friend class RenderEngine;
-    friend class Input;
+
+    enum class Action {
+        PrintDebug,
+        Jump,
+        Use
+    };
+
 
     sf::Vector3f position_{0.0f, 0.0f, 0.0f};
     //sf::Vector3f moveVector;
@@ -33,6 +41,7 @@ public:
     void printDebugInfo() const;
     void move(Direction direction);
     void cameraRotate(Direction direction);
+    void justdo(Action action);
 };
 
 

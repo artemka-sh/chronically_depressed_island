@@ -1,5 +1,10 @@
 #include "input.hpp"
 
+const std::map<sf::Keyboard::Key, Cameraman::Action> Input::actionKeymap =
+{
+    {sf::Keyboard::Key::P, Cameraman::Action::PrintDebug},
+    {sf::Keyboard::Key::F, Cameraman::Action::Use}
+};
 const std::map<sf::Keyboard::Key, Cameraman::Direction> Input::moveKeymap =
 {
     {sf::Keyboard::Key::W, Cameraman::Direction::Forward},
@@ -7,7 +12,7 @@ const std::map<sf::Keyboard::Key, Cameraman::Direction> Input::moveKeymap =
     {sf::Keyboard::Key::A, Cameraman::Direction::Left},
     {sf::Keyboard::Key::D, Cameraman::Direction::Right},
     {sf::Keyboard::Key::Q, Cameraman::Direction::Down},
-    {sf::Keyboard::Key::E, Cameraman::Direction::Up}
+    {sf::Keyboard::Key::E, Cameraman::Direction::Up},
 };
 
 const std::map<sf::Keyboard::Key, Cameraman::Direction> Input::rotateKeymap =
@@ -50,5 +55,12 @@ void Input::process(Cameraman &cameraman)
         }
     }
 
-
+    // Обработка действий
+    for (const auto& [key, action] : actionKeymap)
+    {
+        if (sf::Keyboard::isKeyPressed(key))
+        {
+            cameraman.justdo(action/*, dt*/);
+        }
+    }
 }

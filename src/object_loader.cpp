@@ -16,7 +16,7 @@ resourceManager_(resource_manager)
 
     auto fire = std::make_shared<Mesh>();
     fire->dimen_ = Mesh::Dimens::_2d;
-    fire->position_ = sf::Vector3f(10, 10, 10);
+    fire->position_ = sf::Vector3f(659.8882, 100, -729.39087);
     fire->isStatic_ = true;
     fire->lightness_ = true;
     fire->scale_ = sf::Vector3f(300.0f, 400.0f, 0.0f);

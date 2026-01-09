@@ -1,10 +1,17 @@
  #include "render_engine.hpp"
 
 
-sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b);
-
 int MAP_SC = 1000;
 constexpr float PI = 3.14159;
+
+
+inline float deg_to_rad(float n)
+{
+    return n * PI / 180;
+}
+
+sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b);
+
 
 
 RenderEngine::RenderEngine(sf::RenderWindow& window, Object_loader& loader, Cameraman& cameraman):
@@ -56,67 +63,38 @@ sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
 
 void RenderEngine::render2DMesh(const Mesh& mesh)
 {
-    std::vector<sf::Vector3f> dots(4);
-    // dots.resize(4);
+    sf::Vector3f dot_position = mesh.position_;
+    std::vector<sf::Vector2f> pointOnScreen = calculateDots(std::vector<sf::Vector3f>{dot_position});
+    sf::Vector2f centerPoint = pointOnScreen[0];
+    if (std::isnan(centerPoint.x))
+    {
+        return;
+    }
 
-    float halfWidth = mesh.scale_.x / 2.0f;
-    float halfHeight = mesh.scale_.y / 2.0f;
-
-    float cosY = cos(cameraman_.yaw_);
-    float sinY = sin(cameraman_.yaw_);
-
-
-    sf::Vector3f camera_right(cosY, 0.0f, sinY);
-    sf::Vector3f up = sf::Vector3f(0.0f, 0.1f, 0.0f) * halfHeight;
-
-    dots[0] = mesh.position_ - camera_right + up; //A
-    dots[1] = mesh.position_ + camera_right + up; //B
-    dots[2] = mesh.position_ + camera_right - up; //C
-    dots[3] = mesh.position_ - camera_right - up; //D
-
-    std::vector<sf::Vector2f> pointsOnScreen = calculateDots(dots);
-
-    // if (std::isnan(pointsOnScreen[1].x) ||
-    //     std::isnan(pointsOnScreen[2].x) ||
-    //     std::isnan(pointsOnScreen[3].x) ||
-    //     std::isnan(pointsOnScreen[4].x))
-    // {
-    //     return;
-    // }
+    sf::Vector3f toMesh = cameraman_.position_ - mesh.position_;
+    float distance = sqrt(toMesh.x * toMesh.x + toMesh.y * toMesh.y + toMesh.z * toMesh.z);
+    float meshHeight = mesh.scale_.y * focalLength / distance;
+    float meshWidth = mesh.scale_.x * focalLength / distance;
 
 
-    sf::VertexArray vertices(sf::PrimitiveType::Triangles, 6);
+
+    std::vector<sf::Vector2f> pointsOnScreen(4);
+    pointsOnScreen[0] = centerPoint + sf::Vector2f(-meshWidth/2, -meshHeight);
+    pointsOnScreen[1] = centerPoint + sf::Vector2f(meshWidth/2, -meshHeight);
+    pointsOnScreen[2] = centerPoint + sf::Vector2f(meshWidth/2, 0);
+    pointsOnScreen[3] = centerPoint + sf::Vector2f(-meshWidth/2, 0);
 
     sf::Vector2f texSize = static_cast<sf::Vector2f>(mesh.texture_->getSize());
+    sf::VertexArray vertices(sf::PrimitiveType::Triangles, 6);
+    vertices[0].position = pointsOnScreen[0]; vertices[0].texCoords = sf::Vector2f(0.f, 0.f);
+    vertices[1].position = pointsOnScreen[1]; vertices[1].texCoords = sf::Vector2f(texSize.x, 0.f);
+    vertices[2].position = pointsOnScreen[3]; vertices[2].texCoords = sf::Vector2f(0.f, texSize.y);
+    vertices[3].position = pointsOnScreen[1]; vertices[3].texCoords = sf::Vector2f(texSize.x, 0.f);
+    vertices[4].position = pointsOnScreen[2]; vertices[4].texCoords = sf::Vector2f(texSize.x, texSize.y);
+    vertices[5].position = pointsOnScreen[3]; vertices[5].texCoords = sf::Vector2f(0.f, texSize.y);
 
-
-    sf::Vector2f p0(100.f, 100.f); // Верх-Лево
-    sf::Vector2f p1(400.f, 50.f);  // Верх-Право (чуть выше)
-    sf::Vector2f p2(450.f, 350.f); // Низ-Право  (чуть правее)
-    sf::Vector2f p3(50.f,  300.f); // Низ-Лево   (чуть левее)
-
-
-    // Треугольник 1 (p0, p1, p3)
-    vertices[0].position = p0;
-    vertices[0].texCoords = sf::Vector2f(0.f, 0.f);
-
-    vertices[1].position = p1;
-    vertices[1].texCoords = sf::Vector2f(texSize.x, 0.f);
-
-    vertices[2].position = p3;
-    vertices[2].texCoords = sf::Vector2f(0.f, texSize.y);
-
-    vertices[3].position = p1;
-    vertices[3].texCoords = sf::Vector2f(texSize.x, 0.f);
-
-    vertices[4].position = p2;
-    vertices[4].texCoords = sf::Vector2f(texSize.x, texSize.y);
-
-    vertices[5].position = p3;
-    vertices[5].texCoords = sf::Vector2f(0.f, texSize.y);
 
     window_.draw(vertices, mesh.texture_.get());
-
 
 }
 
@@ -154,7 +132,10 @@ void RenderEngine::render3DMesh(const Mesh& mesh)
     );
     /////////////////////////////////////////
 
-    std::vector<sf::VertexArray> poligonVector;
+
+
+    // std::vector<sf::VertexArray> poligonVector;
+    sf::VertexArray poligonVector(sf::PrimitiveType::Triangles, visibleFaces_.size() * 3);
     for (const auto& triangle : visibleFaces_)
     {
         const sf::Vector3f& A = dots[triangle[0]];
@@ -172,19 +153,16 @@ void RenderEngine::render3DMesh(const Mesh& mesh)
         sf::Color pColor(br, br, br);
 
         sf::VertexArray poligon(sf::PrimitiveType::Triangles, 3); //
-        poligon[0] = sf::Vertex(pointsOnScreen[triangle[0]], pColor);
-        poligon[1] = sf::Vertex(pointsOnScreen[triangle[1]], pColor);
-        poligon[2] = sf::Vertex(pointsOnScreen[triangle[2]], pColor);
-
-        poligonVector.push_back(poligon);
+        poligonVector.append(sf::Vertex(pointsOnScreen[triangle[0]], pColor));
+        poligonVector.append(sf::Vertex(pointsOnScreen[triangle[1]], pColor));
+        poligonVector.append(sf::Vertex(pointsOnScreen[triangle[2]], pColor));
     }
 
     //std::random_shuffle(poligonVector.begin(), poligonVector.end());
+    // for (const auto& poligon: poligonVector)
 
-    for (const auto& poligon: poligonVector)
-    {
-        window_.draw(poligon);
-    }
+    window_.draw(poligonVector);
+
 
 }
 void RenderEngine::rendSkybox()
