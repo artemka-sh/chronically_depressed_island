@@ -45,10 +45,9 @@ void RenderEngine::render()
         {
             render2DMesh(*currentMesh);
         }
-
-
     }
 
+    window_.draw(polygonVector.data(), polygonVector.size(), sf::PrimitiveType::Triangles );
     window_.display();
 
 }
@@ -85,62 +84,29 @@ void RenderEngine::render2DMesh(const Mesh& mesh)
     pointsOnScreen[3] = centerPoint + sf::Vector2f(-meshWidth/2, 0);
 
     sf::Vector2f texSize = static_cast<sf::Vector2f>(mesh.texture_->getSize());
-    sf::VertexArray vertices(sf::PrimitiveType::Triangles, 6);
-    vertices[0].position = pointsOnScreen[0]; vertices[0].texCoords = sf::Vector2f(0.f, 0.f);
-    vertices[1].position = pointsOnScreen[1]; vertices[1].texCoords = sf::Vector2f(texSize.x, 0.f);
-    vertices[2].position = pointsOnScreen[3]; vertices[2].texCoords = sf::Vector2f(0.f, texSize.y);
-    vertices[3].position = pointsOnScreen[1]; vertices[3].texCoords = sf::Vector2f(texSize.x, 0.f);
-    vertices[4].position = pointsOnScreen[2]; vertices[4].texCoords = sf::Vector2f(texSize.x, texSize.y);
-    vertices[5].position = pointsOnScreen[3]; vertices[5].texCoords = sf::Vector2f(0.f, texSize.y);
+    polygonVector.reserve(polygonVector.size() + 6);
 
-
-    window_.draw(vertices, mesh.texture_.get());
+    polygonVector.emplace_back(pointsOnScreen[0], sf::Color::White, sf::Vector2f(0.f, 0.f));
+    polygonVector.emplace_back(pointsOnScreen[1], sf::Color::White, sf::Vector2f(texSize.x, 0.f));
+    polygonVector.emplace_back(pointsOnScreen[3], sf::Color::White, sf::Vector2f(0.f, texSize.y));
+    polygonVector.emplace_back(pointsOnScreen[1], sf::Color::White, sf::Vector2f(texSize.x, 0.f));
+    polygonVector.emplace_back(pointsOnScreen[2], sf::Color::White, sf::Vector2f(texSize.x, texSize.y));
+    polygonVector.emplace_back(pointsOnScreen[3], sf::Color::White, sf::Vector2f(0.f, texSize.y));
 
 }
 
 void RenderEngine::render3DMesh(const Mesh& mesh)
 {
-    const Mesh *currentMesh = &mesh; //это просто чтоб не менять имя и споосб обращения
 
-    const auto& dots = currentMesh->dots_;
-    std::vector<sf::Vector2f> pointsOnScreen = calculateDots(dots);
+    std::vector<sf::Vector2f> pointsOnScreen = calculateDots(mesh.dots_);
 
+    sortPolygons(mesh, pointsOnScreen);
 
-    //здесь происходит реализцаия сортировки граней по удалённости
-    auto isVisible = [&](const std::vector<int>& face) {
-        return !std::isnan(pointsOnScreen[face[0]].x) ||
-               !std::isnan(pointsOnScreen[face[1]].x) ||
-               !std::isnan(pointsOnScreen[face[2]].x);
-    };
-    visibleFaces_ = currentMesh->faces_
-                      | std::views::filter(isVisible)
-                      | std::ranges::to<std::vector>();
-
-    std::ranges::sort(visibleFaces_,
-        std::greater<>{},
-    [&](const std::vector<int>& face)
-    {
-        sf::Vector3f middleDotOfFace(0, 0, 0);
-        for (int index : face)
-        {
-            middleDotOfFace += dots[index];
-        }
-        middleDotOfFace /= static_cast<float>(face.size());
-        sf::Vector3f diff = middleDotOfFace - cameraman_.position_;
-        return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-    }
-    );
-    /////////////////////////////////////////
-
-
-
-    // std::vector<sf::VertexArray> poligonVector;
-    sf::VertexArray poligonVector(sf::PrimitiveType::Triangles, visibleFaces_.size() * 3);
     for (const auto& triangle : visibleFaces_)
     {
-        const sf::Vector3f& A = dots[triangle[0]];
-        const sf::Vector3f& B = dots[triangle[1]];
-        const sf::Vector3f& C = dots[triangle[2]];
+        const sf::Vector3f& A = mesh.dots_[triangle[0]];
+        const sf::Vector3f& B = mesh.dots_[triangle[1]];
+        const sf::Vector3f& C = mesh.dots_[triangle[2]];
         const auto AB = A - B;
         const auto AC = A - C;
 
@@ -153,18 +119,42 @@ void RenderEngine::render3DMesh(const Mesh& mesh)
         sf::Color pColor(br, br, br);
 
         sf::VertexArray poligon(sf::PrimitiveType::Triangles, 3); //
-        poligonVector.append(sf::Vertex(pointsOnScreen[triangle[0]], pColor));
-        poligonVector.append(sf::Vertex(pointsOnScreen[triangle[1]], pColor));
-        poligonVector.append(sf::Vertex(pointsOnScreen[triangle[2]], pColor));
+
+        polygonVector.emplace_back(sf::Vertex(pointsOnScreen[triangle[0]], pColor));
+        polygonVector.emplace_back(sf::Vertex(pointsOnScreen[triangle[1]], pColor));
+        polygonVector.emplace_back(sf::Vertex(pointsOnScreen[triangle[2]], pColor));
     }
-
-    //std::random_shuffle(poligonVector.begin(), poligonVector.end());
-    // for (const auto& poligon: poligonVector)
-
-    window_.draw(poligonVector);
 
 
 }
+
+void RenderEngine::sortPolygons(const Mesh &mesh, std::vector<sf::Vector2f> &pointsOnScreen)
+{
+    auto isVisible = [&](const std::vector<int>& face) {
+        return !std::isnan(pointsOnScreen[face[0]].x) ||
+               !std::isnan(pointsOnScreen[face[1]].x) ||
+               !std::isnan(pointsOnScreen[face[2]].x);
+    };
+    visibleFaces_ = mesh.faces_
+                      | std::views::filter(isVisible)
+                      | std::ranges::to<std::vector>();
+
+    std::ranges::sort(visibleFaces_,
+        std::greater<>{},
+    [&](const std::vector<int>& face)
+    {
+        sf::Vector3f middleDotOfFace(0, 0, 0);
+        for (int index : face)
+        {
+            middleDotOfFace += mesh.dots_[index];
+        }
+        middleDotOfFace /= static_cast<float>(face.size());
+        sf::Vector3f diff = middleDotOfFace - cameraman_.position_;
+        return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+    }
+    );
+}
+
 void RenderEngine::rendSkybox()
 {
 

@@ -21,6 +21,7 @@ public:
     std::vector<sf::Vector2f> calculateDots(const std::vector<sf::Vector3f>& dots);
     void render3DMesh(const Mesh& mesh);
     void render2DMesh(const Mesh& mesh);
+    void sortPolygons(const Mesh &mesh, std::vector<sf::Vector2f> &pointsOnScreen);
     // void applyLighting(const Scene& scene);
     // void postProcess();
 
@@ -36,6 +37,7 @@ private:
     int SCR_X;
     int SCR_Y;
 
+    std::vector<sf::Vertex> polygonVector;
     // Временные объекты
     std::vector<std::vector<int>> visibleFaces_;
     sf::Vector3f sunLightDirection{0.4f, 0.8f, -0.9f};
