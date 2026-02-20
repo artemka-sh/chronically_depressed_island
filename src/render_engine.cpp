@@ -28,6 +28,7 @@ window_(window), loader_(loader), cameraman_(cameraman)
 void RenderEngine::render()
 {
     window_.clear();
+    polygonVector.clear();
 
     rFOV = cameraman_.FOV_ * PI / 180; //радиан
     focalLength = SCR_X / (2.0f * tan(rFOV / 2.0f));
@@ -47,9 +48,13 @@ void RenderEngine::render()
         }
     }
 
-    window_.draw(polygonVector.data(), polygonVector.size(), sf::PrimitiveType::Triangles );
-    window_.display();
 
+    std::ranges::sort(polygonVector, [](const Polygon& a, const Polygon& b) {
+        return a.depth_ > b.depth_;
+    });
+
+    renderBatch();
+    window_.display();
 }
 
 sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
@@ -71,11 +76,11 @@ void RenderEngine::render2DMesh(const Mesh& mesh)
     }
 
     sf::Vector3f toMesh = cameraman_.position_ - mesh.position_;
-    float distance = sqrt(toMesh.x * toMesh.x + toMesh.y * toMesh.y + toMesh.z * toMesh.z);
+    float depthSq = toMesh.x * toMesh.x + toMesh.y * toMesh.y + toMesh.z * toMesh.z;
+    float distance = sqrt(depthSq);
+
     float meshHeight = mesh.scale_.y * focalLength / distance;
     float meshWidth = mesh.scale_.x * focalLength / distance;
-
-
 
     std::vector<sf::Vector2f> pointsOnScreen(4);
     pointsOnScreen[0] = centerPoint + sf::Vector2f(-meshWidth/2, -meshHeight);
@@ -84,26 +89,40 @@ void RenderEngine::render2DMesh(const Mesh& mesh)
     pointsOnScreen[3] = centerPoint + sf::Vector2f(-meshWidth/2, 0);
 
     sf::Vector2f texSize = static_cast<sf::Vector2f>(mesh.texture_->getSize());
-    polygonVector.reserve(polygonVector.size() + 6);
+    polygonVector.reserve(polygonVector.size() + 2);
 
-    polygonVector.emplace_back(pointsOnScreen[0], sf::Color::White, sf::Vector2f(0.f, 0.f));
-    polygonVector.emplace_back(pointsOnScreen[1], sf::Color::White, sf::Vector2f(texSize.x, 0.f));
-    polygonVector.emplace_back(pointsOnScreen[3], sf::Color::White, sf::Vector2f(0.f, texSize.y));
-    polygonVector.emplace_back(pointsOnScreen[1], sf::Color::White, sf::Vector2f(texSize.x, 0.f));
-    polygonVector.emplace_back(pointsOnScreen[2], sf::Color::White, sf::Vector2f(texSize.x, texSize.y));
-    polygonVector.emplace_back(pointsOnScreen[3], sf::Color::White, sf::Vector2f(0.f, texSize.y));
 
+    Polygon p1;
+    p1.vertices[0] = {pointsOnScreen[0], sf::Color::White, {0.f, 0.f}};
+    p1.vertices[1] = {pointsOnScreen[1], sf::Color::White, { texSize.x, 0.f}};
+    p1.vertices[2] = {pointsOnScreen[3], sf::Color::White, {0.f,  texSize.y}};
+    p1.texture_ = mesh.texture_;
+    p1.depth_ = depthSq;
+
+
+    Polygon p2;
+    p2.vertices[0] = {pointsOnScreen[1], sf::Color::White, { texSize.x, 0.f}};
+    p2.vertices[1] = {pointsOnScreen[2], sf::Color::White, { texSize.x,  texSize.y}};
+    p2.vertices[2] = {pointsOnScreen[3], sf::Color::White, {0.f,  texSize.y}};
+    p2.texture_ = mesh.texture_;
+    p2.depth_ = depthSq;
+
+    polygonVector.push_back(p1);
+    polygonVector.push_back(p2);
 }
 
 void RenderEngine::render3DMesh(const Mesh& mesh)
 {
-
     std::vector<sf::Vector2f> pointsOnScreen = calculateDots(mesh.dots_);
 
-    sortPolygons(mesh, pointsOnScreen);
-
-    for (const auto& triangle : visibleFaces_)
+    for (const auto& triangle : mesh.faces_)
     {
+        if (std::isnan(pointsOnScreen[triangle[0]].x) ||
+            std::isnan(pointsOnScreen[triangle[1]].x) ||
+            std::isnan(pointsOnScreen[triangle[2]].x)) {
+            continue;
+            }
+
         const sf::Vector3f& A = mesh.dots_[triangle[0]];
         const sf::Vector3f& B = mesh.dots_[triangle[1]];
         const sf::Vector3f& C = mesh.dots_[triangle[2]];
@@ -118,41 +137,22 @@ void RenderEngine::render3DMesh(const Mesh& mesh)
         br = std::clamp(br, 0, 255);
         sf::Color pColor(br, br, br);
 
-        sf::VertexArray poligon(sf::PrimitiveType::Triangles, 3); //
 
-        polygonVector.emplace_back(sf::Vertex(pointsOnScreen[triangle[0]], pColor));
-        polygonVector.emplace_back(sf::Vertex(pointsOnScreen[triangle[1]], pColor));
-        polygonVector.emplace_back(sf::Vertex(pointsOnScreen[triangle[2]], pColor));
+
+        Polygon poly;
+        poly.vertices[0] = sf::Vertex(pointsOnScreen[triangle[0]], pColor);
+        poly.vertices[1] = sf::Vertex(pointsOnScreen[triangle[1]], pColor);
+        poly.vertices[2] = sf::Vertex(pointsOnScreen[triangle[2]], pColor);
+
+        poly.texture_ = mesh.texture_;
+        sf::Vector3f center = (A + B + C) / 3.0f;
+        sf::Vector3f diff = center - cameraman_.position_;
+        poly.depth_ = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+
+        polygonVector.emplace_back(poly);
     }
 
 
-}
-
-void RenderEngine::sortPolygons(const Mesh &mesh, std::vector<sf::Vector2f> &pointsOnScreen)
-{
-    auto isVisible = [&](const std::vector<int>& face) {
-        return !std::isnan(pointsOnScreen[face[0]].x) ||
-               !std::isnan(pointsOnScreen[face[1]].x) ||
-               !std::isnan(pointsOnScreen[face[2]].x);
-    };
-    visibleFaces_ = mesh.faces_
-                      | std::views::filter(isVisible)
-                      | std::ranges::to<std::vector>();
-
-    std::ranges::sort(visibleFaces_,
-        std::greater<>{},
-    [&](const std::vector<int>& face)
-    {
-        sf::Vector3f middleDotOfFace(0, 0, 0);
-        for (int index : face)
-        {
-            middleDotOfFace += mesh.dots_[index];
-        }
-        middleDotOfFace /= static_cast<float>(face.size());
-        sf::Vector3f diff = middleDotOfFace - cameraman_.position_;
-        return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-    }
-    );
 }
 
 void RenderEngine::rendSkybox()
@@ -219,4 +219,33 @@ std::vector<sf::Vector2f> RenderEngine::calculateDots(const std::vector<sf::Vect
 
     //std::move антипаттерн, должно работать RVO (пожалуйста)
     return pointsOnScreen;
+}
+
+void RenderEngine::renderBatch()
+{
+    if (polygonVector.empty()) return;
+
+    static std::vector<sf::Vertex> currentBatch;
+    currentBatch.clear();
+    currentBatch.reserve(polygonVector.size() * 3);
+
+    const sf::Texture* lastTexturePtr = polygonVector[0].texture_.get();
+
+    for (const auto& poly : polygonVector) {
+        if (poly.texture_.get() != lastTexturePtr) {
+            if (!currentBatch.empty()) {
+                window_.draw(currentBatch.data(), currentBatch.size(), sf::PrimitiveType::Triangles, lastTexturePtr);
+                currentBatch.clear();
+            }
+            lastTexturePtr = poly.texture_.get();
+        }
+
+        currentBatch.push_back(poly.vertices[0]);
+        currentBatch.push_back(poly.vertices[1]);
+        currentBatch.push_back(poly.vertices[2]);
+    }
+
+    if (!currentBatch.empty()) {
+        window_.draw(currentBatch.data(), currentBatch.size(), sf::PrimitiveType::Triangles, lastTexturePtr);
+    }
 }

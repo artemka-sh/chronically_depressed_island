@@ -23,6 +23,26 @@ resourceManager_(resource_manager)
     fire->one_sound_ = resourceManager_.get<sf::SoundBuffer>("res/campfire.wav");
     fire->texture_ = resourceManager_.get<sf::Texture>("res/campfire.png");
     objects.push_back(fire);
+
+    auto tree = std::make_shared<Mesh>();
+    tree->dimen_ = Mesh::Dimens::_2d;
+    tree->position_ = sf::Vector3f(358.5496, 120, 399.77933);
+    tree->isStatic_ = true;
+    tree->lightness_ = false;
+    tree->scale_ = sf::Vector3f(300.0f, 400.0f, 0.0f);
+    tree->one_sound_ = resourceManager_.get<sf::SoundBuffer>("res/campfire.wav");
+    tree->texture_ = resourceManager_.get<sf::Texture>("res/tree.png");
+    objects.push_back(tree);
+
+    auto tree2 = std::make_shared<Mesh>();
+    tree2->dimen_ = Mesh::Dimens::_2d;
+    tree2->position_ = sf::Vector3f(-21.1378, 50, 1270.2332);
+    tree2->isStatic_ = true;
+    tree2->lightness_ = false;
+    tree2->scale_ = sf::Vector3f(300.0f, 400.0f, 0.0f);
+    tree2->one_sound_ = resourceManager_.get<sf::SoundBuffer>("res/campfire.wav");
+    tree2->texture_ = resourceManager_.get<sf::Texture>("res/tree.png");
+    objects.push_back(tree2);
 }
 
 Object_loader::~Object_loader()

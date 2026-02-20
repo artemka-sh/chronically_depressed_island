@@ -9,6 +9,13 @@
 #include <vector>
 #include <algorithm>
 
+struct Polygon {
+    sf::Vertex vertices[3];
+    std::shared_ptr<sf::Texture> texture_;
+    float depth_;
+};
+
+
 class RenderEngine
 {
 public:
@@ -21,7 +28,7 @@ public:
     std::vector<sf::Vector2f> calculateDots(const std::vector<sf::Vector3f>& dots);
     void render3DMesh(const Mesh& mesh);
     void render2DMesh(const Mesh& mesh);
-    void sortPolygons(const Mesh &mesh, std::vector<sf::Vector2f> &pointsOnScreen);
+    void renderBatch();
     // void applyLighting(const Scene& scene);
     // void postProcess();
 
@@ -37,7 +44,7 @@ private:
     int SCR_X;
     int SCR_Y;
 
-    std::vector<sf::Vertex> polygonVector;
+    std::vector<Polygon> polygonVector;
     // Временные объекты
     std::vector<std::vector<int>> visibleFaces_;
     sf::Vector3f sunLightDirection{0.4f, 0.8f, -0.9f};
