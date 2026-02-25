@@ -9,7 +9,6 @@
 // #include <iostream>
 
 
-
 class Object_loader
 {
 private:

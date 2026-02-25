@@ -18,7 +18,7 @@ resourceManager_(resource_manager)
     fire->dimen_ = Mesh::Dimens::_2d;
     fire->position_ = sf::Vector3f(659.8882, 100, -729.39087);
     fire->isStatic_ = true;
-    fire->lightness_ = true;
+    fire->lightness_ = UINT8_MAX;
     fire->scale_ = sf::Vector3f(300.0f, 400.0f, 0.0f);
     fire->one_sound_ = resourceManager_.get<sf::SoundBuffer>("res/campfire.wav");
     fire->texture_ = resourceManager_.get<sf::Texture>("res/campfire.png");

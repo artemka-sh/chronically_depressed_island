@@ -1,5 +1,5 @@
  #include "render_engine.hpp"
-
+#include <SFML/Main.hpp>
 
 int MAP_SC = 1000;
 constexpr float PI = 3.14159;
@@ -29,6 +29,10 @@ void RenderEngine::render()
 {
     window_.clear();
     polygonVector.clear();
+
+    day += 0.01f;    year += 0.01f;
+    sunLightDirection = {std::cos(day), std::sin(day) + std::sin(year) * 0.4f, std::cos(year) * 0.2f};
+    sunLightDirection = sunLightDirection.normalized();
 
     rFOV = cameraman_.FOV_ * PI / 180; //радиан
     focalLength = SCR_X / (2.0f * tan(rFOV / 2.0f));
@@ -92,18 +96,25 @@ void RenderEngine::render2DMesh(const Mesh& mesh)
     polygonVector.reserve(polygonVector.size() + 2);
 
 
+    float scalarProduct = sf::Vector3f{0, 1, 0}.dot(sunLightDirection);
+    int br = scalarProduct * 255;
+    if (mesh.lightness_) br = std::abs(br);
+    br += mesh.lightness_;
+    br = std::clamp(br, 0, 255);
+    sf::Color pColor(br, br, br);
+
     Polygon p1;
-    p1.vertices[0] = {pointsOnScreen[0], sf::Color::White, {0.f, 0.f}};
-    p1.vertices[1] = {pointsOnScreen[1], sf::Color::White, { texSize.x, 0.f}};
-    p1.vertices[2] = {pointsOnScreen[3], sf::Color::White, {0.f,  texSize.y}};
+    p1.vertices[0] = {pointsOnScreen[0], pColor, {0.f, 0.f}};
+    p1.vertices[1] = {pointsOnScreen[1], pColor, { texSize.x, 0.f}};
+    p1.vertices[2] = {pointsOnScreen[3], pColor, {0.f,  texSize.y}};
     p1.texture_ = mesh.texture_;
     p1.depth_ = depthSq;
 
 
     Polygon p2;
-    p2.vertices[0] = {pointsOnScreen[1], sf::Color::White, { texSize.x, 0.f}};
-    p2.vertices[1] = {pointsOnScreen[2], sf::Color::White, { texSize.x,  texSize.y}};
-    p2.vertices[2] = {pointsOnScreen[3], sf::Color::White, {0.f,  texSize.y}};
+    p2.vertices[0] = {pointsOnScreen[1], pColor, { texSize.x, 0.f}};
+    p2.vertices[1] = {pointsOnScreen[2], pColor, { texSize.x,  texSize.y}};
+    p2.vertices[2] = {pointsOnScreen[3], pColor, {0.f,  texSize.y}};
     p2.texture_ = mesh.texture_;
     p2.depth_ = depthSq;
 

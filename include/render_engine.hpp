@@ -48,7 +48,7 @@ private:
     // Временные объекты
     std::vector<std::vector<int>> visibleFaces_;
     sf::Vector3f sunLightDirection{0.4f, 0.8f, -0.9f};
-
-
+    float day = 0.0f;
+    float year = 0.0f;
 
 };
